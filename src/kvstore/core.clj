@@ -3,6 +3,7 @@
             [aleph.tcp :as tcp]
             [clojure.string :as str]
             [kvstore.store :as store]
+            [kvstore.config :refer [conf]]
             [manifold.deferred :as d]
             [clojure.tools.logging :as log])
   (:gen-class))
@@ -64,4 +65,4 @@
   "I don't do a whole lot ... yet."
   [& args]
   (log/info "Starting server..")
-  (start-server 10009))
+  (start-server (:port conf)))

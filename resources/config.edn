@@ -1,0 +1,4 @@
+{
+  :master true
+  :listen "localhost"
+  :port 10009}
