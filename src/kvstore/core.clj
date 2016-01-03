@@ -61,6 +61,7 @@
               (s/close! s))))))
 
 (defn start-server [port]
+  (store/recreate-storage)
   (tcp/start-server process-client
                     {:port port})
   (log/info "Listening.."))
