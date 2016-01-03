@@ -6,10 +6,15 @@
             [kvstore.config :refer [conf]]
             [manifold.deferred :as d]
             [clojure.tools.logging :as log])
+  (:import (java.nio.charset StandardCharsets))
   (:gen-class))
 
 (defn to-string [bytes]
-  (apply str (map char bytes)))
+  (String. bytes StandardCharsets/UTF_8))
+
+(defn write-operation [data]
+  (apply store/put! data)
+  "OK\r\n")
 
 (defn process-cmd [command]
   "It parses a cmd and return the response"
@@ -17,8 +22,7 @@
   (let [data (str/split command #" ")]
     (case (first data)
       "GET" (store/get-key (last data))
-      "SET" (do (apply store/put! (rest data))
-                "OK\r\n")
+      "SET" (write-operation (rest data))
       "CLOSE" ::close
       "Unrecognized command")))
 
@@ -29,11 +33,11 @@
 
 (defn process-response [s response]
   (log/debug "Processing response " response)
-  (case (to-string response)
+  (case response
     ::close (do  (s/put! s (str "Closing..."))
                  (s/close! s))
     ::none nil
-    (s/put! s (to-string response))))
+    (s/put! s response)))
 
 (defn process-client [s info]
   "It processes any new connection.
