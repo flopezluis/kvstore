@@ -1,0 +1,6 @@
+{
+  :master true
+  :listen "localhost"
+  :port 10009
+  :db_file "kv_test.dat"
+  }

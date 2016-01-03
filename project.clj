@@ -11,7 +11,11 @@
                                               com.sun.jdmk/jmxtools
                                               com.sun.jmx/jmxri]]
                  [org.slf4j/slf4j-log4j12 "1.6.6"]
-                 ]
+                 [gloss "0.2.5"]]
   :main ^:skip-aot kvstore.core
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :profiles {
+             :dev {:resource-paths ["resources/dev"]}
+             :prod {:resource-paths ["resources/prod"]}
+             :uberjar  {:aot :all}
+             })
