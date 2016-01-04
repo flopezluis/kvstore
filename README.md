@@ -11,6 +11,12 @@ The objective is to learn things like:
 5. How does it know when the Leader has a failure?
 6. ….
 
+## Implemented
+1. Implementation à la Bitcask. Data is persisted to disk. Every key and value are stored in an append-only file, so that operations are much much faster and simple.
+The in-memory hashmap works as an Index for byte offsets. Every key in the hashmap points to an offset in the file.
+2. Because data is persisted the DB is recreated at the start time.
+3. Protocol. So far it supports GET, SET and CLOSE.
+
 ## Installation
 
 Just clone this repo.
@@ -18,7 +24,11 @@ Just clone this repo.
 ## Usage
 
 
-    $ lein run
+    $ lein with-profile prod run
+
+    Tests:
+
+    $ lein with-profile dev test
 
 The database has really simple text protocol. These are the  supported commands:
 
