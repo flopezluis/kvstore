@@ -1,39 +1,49 @@
 (ns kvstore.store
   (:require [kvstore.config :refer [conf]]
-            [gloss.core :as gloss :refer [defcodec]]
-            [gloss.io :refer [decode encode contiguous]]
             [clojure.java.io :refer [file]]
-            [clojure.tools.logging :as log])
+            [clojure.tools.logging :as log]
+            [clojure.string :as str])
   (:use [clojure.java.io])
   (:import [java.nio ByteBuffer]
            [java.io RandomAccessFile File FileOutputStream]))
 
 (def ^{:private true} storage (atom {}))
 
-(def stoken (gloss/string :utf-8 :delimiters "«"))
-(defcodec record-codec [stoken stoken])
+(defn key-value-to-buffer [k v]
+  (ByteBuffer/wrap (.getBytes (str k  #"«" v "\0"))))
 
 (defn write-to-file [key value]
   (let [f (File. (:db_file conf))
         fo (FileOutputStream. f true)
         ch  (.getChannel fo)
         offset (.length f)]
-    (.write ch (contiguous (encode record-codec [key value])))
+    (.write ch (key-value-to-buffer key value))
     (.close ch)
     offset))
 
+(defn char-seq
+  [^java.io.RandomAccessFile rdr]
+  (let [chr (.read rdr)]
+    (if (> chr 0)
+      (cons chr (lazy-seq (char-seq rdr))))))
+
+(defn parse-key-value [bytes-buffer]
+  (str/split (String. bytes-buffer) #"«"))
+
 (defn read-from-file [offset]
   (let [raf (RandomAccessFile. (:db_file conf) "r")
-        buf (byte-array 1024)
         _ (.seek raf offset)
-        n (.read raf buf)]
+        buf (char-seq raf)
+        data (parse-key-value (byte-array buf))]
     (.close raf)
-    (decode record-codec (java.nio.ByteBuffer/wrap buf) false)))
+    data))
 
 (defn get-key [key]
-  (-> (get @storage key)
-      read-from-file
-      last))
+  (if-let [offset (get @storage key)]
+    (-> offset
+        read-from-file
+        last)
+    "Not Found"))
 
 (defn put! [key value]
   (let [offset (write-to-file key value)]
@@ -45,7 +55,7 @@
   (loop [offset 0]
     (when (< offset (.length (File. (:db_file conf))))
       (let [[k v] (read-from-file offset)
-            next-key (.remaining (contiguous (encode record-codec [k v])))]
+            next-key (.remaining (key-value-to-buffer k v))]
         (swap! storage assoc k offset)
         (recur (+ offset next-key)))))
   (log/debug "Database ready"))

@@ -21,7 +21,7 @@
   (log/debug "Processing cmd " command)
   (let [data (str/split command #" ")]
     (case (first data)
-      "GET" (store/get-key (last data))
+      "GET" (str (store/get-key (last data)) "\r\n")
       "SET" (write-operation (rest data))
       "CLOSE" ::close
       "Unrecognized command")))
@@ -39,22 +39,27 @@
     ::none nil
     (s/put! s response)))
 
+(defn process-commands [s batch-commands]
+  (let [cmds (str/split-lines batch-commands)]
+    (doall (map #(process-response s (process-cmd %1)) cmds))))
+
+
 (defn process-client [s info]
   "It processes any new connection.
    The code is based on this example
       http://ideolalia.com/aleph/literate.html#aleph.examples.tcp"
-  (d/loop []
+  (d/loop [cmd []]
     (-> (s/take! s ::none)
         (d/chain
-         (fn [msg]
-           (if (= ::none msg)
-             ::none
-             (d/future (process-protocol msg))))
-         (fn [msg']
-           (doall (map (partial process-response s) msg')))
+         (fn [b]
+           (let [text (to-string b)]
+             {:complete (= \newline (last text))
+              :text text}))
          (fn [result]
-           (when result
-             (d/recur))))
+           (let [acc (conj cmd (:text result))]
+             (if (:complete result)
+               (process-commands s (str/join acc)))
+             (d/recur acc))))
         (d/catch
             (fn [ex]
               (s/put! s (str "ERROR: " ex))
@@ -63,7 +68,7 @@
 (defn start-server [port]
   (store/recreate-storage)
   (tcp/start-server process-client
-                    {:port port})
+   {:port port} )
   (log/info "Listening.."))
 
 (defn -main
