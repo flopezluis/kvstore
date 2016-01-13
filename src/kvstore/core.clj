@@ -49,7 +49,6 @@
   (let [cmds (str/split-lines batch-commands)]
     (doall (map #(process-response s (process-cmd %1)) cmds))))
 
-
 (defn process-client [s info]
   "It processes any new connection.
    The code is based on this example
@@ -64,8 +63,11 @@
          (fn [result]
            (let [acc (conj cmd (:text result))]
              (if (:complete result)
-               (process-commands s (str/join acc)))
-             (d/recur acc))))
+               (do
+                 (process-commands s (str/join acc))
+                 (d/recur []))
+               (d/recur acc))
+             )))
         (d/catch
             (fn [ex]
               (s/put! s (str "ERROR: " ex))
