@@ -12,14 +12,20 @@
 (defn key-value-to-buffer [k v]
   (ByteBuffer/wrap (.getBytes (str k  #"«" v "\0"))))
 
-(defn write-to-file [key value]
-  (let [f (File. (:db_file conf))
-        fo (FileOutputStream. f true)
-        ch  (.getChannel fo)
-        offset (.length f)]
+(def ag-out-file (agent (.getChannel
+                         (FileOutputStream. (File. (:db_file conf)) true))))
+
+(defn err-handler-fn [ag ex]
+  (println "Error occured: " ex " value in agent: " @ag))
+
+(set-error-handler! ag-out-file err-handler-fn)
+
+(defn update-key [ch key value]
+  (let [offset (.position ch)]
     (.write ch (key-value-to-buffer key value))
-    (.close ch)
-    offset))
+    (swap! storage assoc key offset)
+    ch)
+  )
 
 (defn char-seq
   [^java.io.RandomAccessFile rdr]
@@ -46,9 +52,7 @@
     "Not Found"))
 
 (defn put! [key value]
-  (let [offset (write-to-file key value)]
-    (swap! storage assoc key offset)
-    :ok))
+  (await (send ag-out-file update-key key value)))
 
 (defn recreate-storage []
   (log/debug "Reading db file...")
