@@ -33,6 +33,7 @@ Just clone this repo.
 The database has really simple text protocol. These are the  supported commands:
 
 * SET key value
+* FSET key value ;;No ack is sent.
 * GET key
 * CLOSE
 

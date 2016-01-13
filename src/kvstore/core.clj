@@ -16,6 +16,11 @@
   (apply store/put! data)
   "OK\r\n")
 
+(defn fwrite-operation [data]
+  "Writes with no response"
+  (apply store/put! data)
+  ::none)
+
 (defn process-cmd [command]
   "It parses a cmd and return the response"
   (log/debug "Processing cmd " command)
@@ -23,6 +28,7 @@
     (case (first data)
       "GET" (str (store/get-key (last data)) "\r\n")
       "SET" (write-operation (rest data))
+      "FSET" (fwrite-operation (rest data))
       "CLOSE" ::close
       "Unrecognized command")))
 
