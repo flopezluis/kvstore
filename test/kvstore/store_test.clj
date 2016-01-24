@@ -3,11 +3,13 @@
             [kvstore.core :refer :all]
             [kvstore.store :as store]
             [clojure.java.io :refer [delete-file file]]
-            [kvstore.config :refer [conf]]))
+            [kvstore.config :refer [conf]])
+  (:import [java.nio ByteBuffer]
+           [java.io RandomAccessFile File FileOutputStream]))
 
 (defn delete-db []
   (if (.exists (file (:db_file conf)))
-    (delete-file (:db_file conf))))
+    (.setLength (RandomAccessFile. (:db_file conf) "rw") 0)))
 
 (defn clear
   "Delete file"
@@ -22,15 +24,10 @@
 
 (deftest test-set-is-stored
   (testing "testing key/value are stored"
-    (is (= :ok (store/put! "key" "value")))
+    (store/put! "key" "value")
     (is (= "value" (store/get-key "key")))))
 
 (deftest test-read-from-file
   (testing "testing key/value are stored"
-    (is (= :ok (store/put! "key" "value")))
+    (store/put! "key" "value")
     (is (= ["key" "value"] (store/read-from-file 0)))))
-
-(deftest test-write-to-file
-  (testing "testing key/value are stored"
-    (is (= 0 (store/write-to-file "mykey" "myvalue")))
-    (is (= ["mykey" "myvalue"] (store/read-from-file 0)))))

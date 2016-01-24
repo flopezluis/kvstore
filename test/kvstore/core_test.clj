@@ -1,18 +1,28 @@
 (ns kvstore.core-test
   (:require [clojure.test :refer :all]
-            [kvstore.core :refer :all]
+            [kvstore.core :as core]
+            [kvstore.protocol :as protocol]
+            [manifold.stream :as s]
             [kvstore.store :as store]))
 
-(deftest test-process-set-cmd
+(deftest test-get-value
   (testing "testing a command is well parsed."
-    (is (= "OK") (process-cmd "SET b 1"))
-    (is (= "1") (get #'store/storage "b"))))
+    (let [s (s/stream)]
+      (store/put! "key" "value")
+      (core/get-value "key" s)
+      (is (= "value") @(s/take! s)))))
 
-(deftest test-process-get-cmd
+(deftest test-write-value
   (testing "testing a command is well parsed."
-    (is (= "OK") (process-cmd "SET b 1"))
-    (is (= "1") (store/get-key "b"))))
+    (let [s (s/stream)]
+      (core/write-operation "key2" "value2" s)
+      (is (= "OK\r\n") @(s/take! s))
+      (core/get-value "key2" s)
+      (is (= "value2") @(s/take! s)))))
 
-(deftest test-process-close-cmd
+(deftest test-fwrite-value
   (testing "testing a command is well parsed."
-    (is (= ::close) (process-cmd "CLOSE"))))
+    (let [s (s/stream)]
+      (core/fwrite-operation "key3" "value3" s)
+      (core/get-value "key3" s)
+      (is "value3" @(s/take! s)))))

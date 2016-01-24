@@ -54,12 +54,18 @@
 (defn put! [key value]
   (await (send ag-out-file update-key key value)))
 
-(defn recreate-storage []
-  (log/debug "Reading db file...")
-  (loop [offset 0]
+(defn reading-kv-from-file [start-offset f]
+  (log/info "Reading db file..." start-offset)
+  (loop [offset start-offset]
     (when (< offset (.length (File. (:db_file conf))))
       (let [[k v] (read-from-file offset)
             next-key (.remaining (key-value-to-buffer k v))]
-        (swap! storage assoc k offset)
-        (recur (+ offset next-key)))))
+        (if (f k v offset)
+          (recur (+ offset next-key)))))))
+
+(defn recreate-storage []
+  (reading-kv-from-file 0
+                        (fn [k v offset]
+                          (swap! storage assoc k offset)
+                          true))
   (log/debug "Database ready"))
