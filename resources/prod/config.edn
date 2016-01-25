@@ -2,5 +2,8 @@
   :master true
   :listen "localhost"
   :port 10009
-  :db_file "kv.dat"
+  :replication-port 10010
+  :master-host "localhost"
+  :db_file "kv_test.dat"
+  :replication-delay 300
   }

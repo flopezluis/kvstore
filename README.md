@@ -15,7 +15,28 @@ The objective is to learn things like:
 1. Implementation à la Bitcask. Data is persisted to disk. Every key and value are stored in an append-only file, so that operations are much much faster and simple.
 The in-memory hashmap works as an Index for byte offsets. Every key in the hashmap points to an offset in the file.
 2. Because data is persisted the DB is recreated at the start time.
-3. Protocol. So far it supports GET, SET and CLOSE.
+3. Protocol. So far it supports GET, SET, FSET and CLOSE.
+4. Isolation. 
+5. Asynchronous replication.
+
+## Replication
+The database supports asynchronous replication. Replication works in a similar way to ACKs in TCP.  Each replica sends its current offset to master, that is, the offset of the last key it has stored. Then, the master sends all the keys from that point to the replica.
+
+This the communication flow:
+
+1. Replica: OFFSET 1234
+2. Master: RSET key value\r\n
+3. Master: RSET key2 value2\r\n
+4. Master: ENDR\r\n
+5. Replica: wait a few milliseconds.
+6. Go to 1.
+
+To enable replication, you only need to set these settings in config.edn in the replicas:
+
+* :master false
+* :replication-port 10010
+* :master-host "localhost"
+* :replication-delay 300
 
 ## Installation
 
@@ -36,6 +57,12 @@ The database has really simple text protocol. These are the  supported commands:
 * FSET key value ;;No ack is sent.
 * GET key
 * CLOSE
+
+List of internal commands used by the replication:
+
+* OFFSET N
+* RSET key value
+* ENDR
 
 ## Examples
 
@@ -62,3 +89,4 @@ Copyright © 2015 FIXME
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
+

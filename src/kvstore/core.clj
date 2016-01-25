@@ -3,6 +3,7 @@
             [aleph.tcp :as tcp]
             [clojure.string :as str]
             [kvstore.store :as store]
+            [kvstore.replication :as replication]
             [kvstore.config :refer [conf]]
             [kvstore.protocol :as protocol :refer [parse-cmd]]
             [manifold.deferred :as d]
@@ -17,12 +18,16 @@
 
 (defn write-operation [k v s]
   (log/debug "MASTER::SET:: received " k v)
-  (store/put! k v)
-  (s/put! s "OK\r\n"))
+  (if (replication/is-master)
+    (do (store/put! k v)
+        (s/put! s "OK\r\n"))
+    (s/put! s "Not Allowed\r\n")))
 
 (defn fwrite-operation [k v s]
   "Writes with no response"
-  (store/put! k v))
+  (if (replication/is-master)
+    (store/put! k v)
+    (s/put! s "Not Allowed\r\n")))
 
 (defn close [s]
   (s/close! s))
@@ -56,6 +61,7 @@
   (log/info "Listening.."))
 
 (defn start-up []
+  (replication/start-replication)
   (start-server (:port conf)))
 
 (defn -main

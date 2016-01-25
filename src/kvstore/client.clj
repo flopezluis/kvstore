@@ -1,10 +1,6 @@
 (ns kvstore.core
   (:import (java.net Socket)
-           (java.io PrintWriter InputStreamReader BufferedReader BufferedOutputStream))
-  (:require [clojure.core.async
-             :as a
-             :refer [>! <! >!! <!! go chan buffer close! thread
-                     alts! alts!! timeout]]))
+           (java.io PrintWriter InputStreamReader BufferedReader BufferedOutputStream)))
 
 (declare conn-handler)
 
